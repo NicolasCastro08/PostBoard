@@ -1,36 +1,39 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-// Recebe: post (objeto) e onPress (função chamada ao tocar no card)
 export default function PostCard({ post, onPress }) {
-    // Trunca o corpo para exibir apenas as primeiras 80 letras
-    const resumo = post.body.length > 80
-        ? post.body.substring(0, 80) + '...'
+
+    // ✅ EXERCÍCIO 3 - resumo maior
+    const resumo = post.body.length > 120
+        ? post.body.substring(0, 120) + '...'
         : post.body;
 
+    // ✅ EXERCÍCIO 3 - cor dinâmica
+    const corBadge = post.userId % 2 === 0 ? '#dcfce7' : '#fef3c7';
+    const corTexto = post.userId % 2 === 0 ? '#166534' : '#92400e';
+
+    // ✅ EXERCÍCIO 3 - data fake
+    const dataHoje = new Date().toLocaleDateString();
+
     return (
-        <TouchableOpacity
-            style={styles.card}
-            onPress={onPress}
-            activeOpacity={0.85}
-        >
-            {/* Linha superior: badge do ID + título */}
+        <TouchableOpacity style={styles.card} onPress={onPress}>
             <View style={styles.cabecalho}>
-                <View style={styles.badge}>
-                    <Text style={styles.badgeTexto}>#{post.id}</Text>
+                <View style={[styles.badge, { backgroundColor: corBadge }]}>
+                    <Text style={[styles.badgeTexto, { color: corTexto }]}>
+                        #{post.id}
+                    </Text>
                 </View>
-                <Text style={styles.titulo} numberOfLines={2}>
-                    {post.title}
-                </Text>
+
+                <Text style={styles.titulo}>{post.title}</Text>
             </View>
 
-            {/* Resumo do corpo do post */}
             <Text style={styles.resumo}>{resumo}</Text>
 
-            {/* Rodapé: ícone de usuário + indicador de leitura */}
             <View style={styles.rodape}>
-                <Text style={styles.autor}>👤 Usuário #{post.userId}</Text>
-                <Text style={styles.lerMais}>Ver mais →</Text>
+                <Text>👤 Usuário #{post.userId}</Text>
+
+                {/* ✅ EXERCÍCIO 3 - data */}
+                <Text>{dataHoje}</Text>
             </View>
         </TouchableOpacity>
     );

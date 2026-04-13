@@ -9,10 +9,14 @@ import LoadingIndicator from '../components/LoadingIndicator';
 export default function DetalhesScreen({ navigation, route }) {
     // Recebe o post completo passado pela FeedScreen
     const { post } = route.params;
-
     const [usuario, setUsuario] = useState(null);
     const [loading, setLoading] = useState(true);
     const [deletando, setDeletando] = useState(false);
+    // ✅ EXERCÍCIO 4
+    const [erroAutor, setErroAutor] = useState(false);
+    // ✅ EXERCÍCIO 5
+    const [pagina, setPagina] = useState(1);
+    const [carregandoMais, setCarregandoMais] = useState(false);
 
     // Define título do header com o ID do post
     useLayoutEffect(() => {
@@ -28,10 +32,13 @@ export default function DetalhesScreen({ navigation, route }) {
             } catch (e) {
                 // Falha ao buscar autor não é crítica — não bloqueia a tela
                 console.warn('Não foi possível carregar o autor:', e.message);
+                // ✅ EXERCÍCIO 4
+                setErroAutor(true);
             } finally {
                 setLoading(false);
             }
         }
+
         carregarAutor();
     }, [post.userId]);
 
@@ -61,6 +68,27 @@ export default function DetalhesScreen({ navigation, route }) {
         }
     }
 
+    // ✅ EXERCÍCIO 5
+    async function carregarMais() {
+        try {
+            setCarregandoMais(true);
+
+            const proximaPagina = pagina + 1;
+
+            const novosDados = await fetch(
+                `https://jsonplaceholder.typicode.com/posts?_page=${proximaPagina}&_limit=10`
+            ).then(res => res.json());
+
+            setPosts(prev => [...prev, ...novosDados]);
+            setPagina(proximaPagina);
+
+        } catch (e) {
+            console.warn('Erro ao carregar mais');
+        } finally {
+            setCarregandoMais(false);
+        }
+    }
+
     if (loading) {
         return <LoadingIndicator mensagem="Carregando autor..." />;
     }
@@ -72,6 +100,12 @@ export default function DetalhesScreen({ navigation, route }) {
                 <Text style={styles.titulo}>{post.title}</Text>
                 <Text style={styles.corpo}>{post.body}</Text>
             </View>
+            {/* ✅ EXERCÍCIO 4 - erro visual */}
+            {erroAutor && (
+                <Text style={styles.erroAutor}>
+                    ⚠️ Não foi possível carregar as informações do autor.
+                </Text>
+            )}
 
             {/* Card do autor */}
             {usuario && (
@@ -104,6 +138,20 @@ export default function DetalhesScreen({ navigation, route }) {
                         {deletando ? 'Excluindo...' : '🗑️  Excluir post'}
                     </Text>
                 </TouchableOpacity>
+
+                // ✅ EXERCÍCIO 5
+
+                ListFooterComponent={
+                <TouchableOpacity
+                    onPress={carregarMais}
+                    disabled={carregandoMais}
+                    style={{ padding: 16, alignItems: 'center' }}
+                >
+                    <Text style={{ color: '#1a56db', fontWeight: '600' }}>
+                        {carregandoMais ? 'Carregando...' : 'Carregar mais'}
+                    </Text>
+                </TouchableOpacity>
+                }
             </View>
 
             <View style={{ height: 40 }} />
@@ -112,37 +160,103 @@ export default function DetalhesScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f3f4f6', padding: 16 },
+    container: {
+        flex: 1,
+        backgroundColor: '#f3f4f6',
+        padding: 16
+    },
+
     card: {
-        backgroundColor: '#ffffff', borderRadius: 12, padding: 20,
-        marginBottom: 16, elevation: 2,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 16,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.08, shadowRadius: 4,
     },
+
     titulo: {
-        fontSize: 20, fontWeight: '700', color: '#1e3a5f',
-        textTransform: 'capitalize', marginBottom: 16, lineHeight: 28,
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#1e3a5f',
+        textTransform: 'capitalize',
+        marginBottom: 16,
+        lineHeight: 28,
     },
-    corpo: { fontSize: 15, color: '#374151', lineHeight: 24 },
+
+    corpo: {
+        fontSize: 15,
+        color: '#374151',
+        lineHeight: 24
+    },
+
     autorCard: {
-        backgroundColor: '#ffffff', borderRadius: 12, padding: 16,
-        marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#1a56db',
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderLeftWidth: 4,
+        borderLeftColor: '#1a56db',
     },
+
     autorLabel: {
-        fontSize: 11, color: '#9ca3af', fontWeight: '700',
+        fontSize: 11,
+        color: '#9ca3af',
+        fontWeight: '700',
         textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6
     },
-    autorNome: { fontSize: 17, fontWeight: '700', color: '#1e3a5f', marginBottom: 8 },
-    autorInfo: { fontSize: 13, color: '#6b7280', marginBottom: 4 },
-    acoes: { gap: 12 },
+
+    autorNome: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#1e3a5f',
+        marginBottom: 8
+    },
+
+    autorInfo: {
+        fontSize: 13,
+        color: '#6b7280',
+        marginBottom: 4
+    },
+
+    acoes: {
+        gap: 12
+    },
+
     botaoEditar: {
-        backgroundColor: '#1a56db', borderRadius: 10,
-        padding: 16, alignItems: 'center',
+        backgroundColor: '#1a56db',
+        borderRadius: 10,
+        padding: 16,
+        alignItems: 'center',
+
     },
     botaoExcluir: {
-        backgroundColor: '#dc2626', borderRadius: 10,
-        padding: 16, alignItems: 'center',
+        backgroundColor: '#dc2626',
+        borderRadius: 10,
+        padding: 16,
+        alignItems: 'center',
     },
-    botaoDesabilitado: { opacity: 0.6 },
-    textoBotao: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+
+    botaoDesabilitado: {
+        opacity: 0.6
+    },
+
+    textoBotao: {
+        color: '#ffffff',
+        fontSize: 15,
+        fontWeight: '700'
+    },
+
+    // ✅ EXERCÍCIO 4
+    erroAutor: {
+        backgroundColor: '#fef9c3',
+        color: '#92400e',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+        fontSize: 13
+    },
+
 });

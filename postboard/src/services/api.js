@@ -71,3 +71,8 @@ export async function getUsuarioPorId(id) {
     return requisicao(`/users/${id}`);
 }
 
+// exercício 
+
+export async function getPostsPorUsuario(userId) {
+    return requisicao(`/posts?userId=${userId}`);
+}

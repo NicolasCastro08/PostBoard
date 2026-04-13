@@ -3,6 +3,7 @@ import {
     View, Text, FlatList, StyleSheet,
     TouchableOpacity, RefreshControl,
 } from 'react-native';
+
 import { getPosts } from '../services/api';
 import PostCard from '../components/PostCard';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -14,7 +15,10 @@ export default function FeedScreen({ navigation }) {
     const [erro, setErro] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
 
-    // Botão '+' no header para criar novo post
+    // ✅ EXERCÍCIO 5 - estados de paginação
+    const [pagina, setPagina] = useState(1);
+    const [carregandoMais, setCarregandoMais] = useState(false);
+
     useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () => (
@@ -22,38 +26,44 @@ export default function FeedScreen({ navigation }) {
                     onPress={() => navigation.navigate('FormularioTab')}
                     style={{ marginRight: 4, padding: 4 }}
                 >
-                    <Text style={{ color: '#fff', fontSize: 28, fontWeight: '300' }}>+</Text>
+                    <Text style={{ color: '#fff', fontSize: 28 }}>+</Text>
                 </TouchableOpacity>
             ),
         });
     }, [navigation]);
 
-    // Carrega os posts ao montar a tela
     useEffect(() => {
         carregarPosts();
     }, []);
 
-    // ── Busca posts da API ─────────────────────────────────
     async function carregarPosts() {
         try {
             setLoading(true);
             setErro(null);
+
             const dados = await getPosts();
             setPosts(dados);
+
+            // ✅ EXERCÍCIO 2 - contador no header
+            navigation.setOptions({
+                title: `PostBoard (${dados.length})`
+            });
+
         } catch (e) {
-            setErro('Não foi possível carregar os posts.\nVerifique sua conexão.');
+            setErro('Não foi possível carregar os posts.');
         } finally {
             setLoading(false);
         }
     }
 
-    // ── Pull-to-refresh ───────────────────────────────────
     async function onRefresh() {
         try {
             setRefreshing(true);
             setErro(null);
+
             const dados = await getPosts();
             setPosts(dados);
+
         } catch (e) {
             setErro('Erro ao atualizar.');
         } finally {
@@ -61,17 +71,36 @@ export default function FeedScreen({ navigation }) {
         }
     }
 
-    // ── Tela de loading inicial ───────────────────────────
+    // ✅ EXERCÍCIO 5 - função carregar mais
+    async function carregarMais() {
+        try {
+            setCarregandoMais(true);
+
+            const proximaPagina = pagina + 1;
+
+            const novosDados = await fetch(
+                `https://jsonplaceholder.typicode.com/posts?_page=${proximaPagina}&_limit=10`
+            ).then(res => res.json());
+
+            setPosts(prev => [...prev, ...novosDados]);
+            setPagina(proximaPagina);
+
+        } catch (e) {
+            console.warn('Erro ao carregar mais');
+        } finally {
+            setCarregandoMais(false);
+        }
+    }
+
     if (loading) {
         return <LoadingIndicator mensagem="Carregando posts..." />;
     }
 
-    // ── Tela de erro ──────────────────────────────────────
     if (erro && posts.length === 0) {
         return (
             <EmptyState
                 icone="⚠️"
-                titulo="Ops! Algo deu errado"
+                titulo="Erro"
                 mensagem={erro}
                 textoBotao="Tentar novamente"
                 onBotao={carregarPosts}
@@ -79,7 +108,6 @@ export default function FeedScreen({ navigation }) {
         );
     }
 
-    // ── Lista de posts ────────────────────────────────────
     return (
         <View style={styles.container}>
             <FlatList
@@ -91,44 +119,31 @@ export default function FeedScreen({ navigation }) {
                         onPress={() => navigation.navigate('Detalhes', { post: item })}
                     />
                 )}
-                ListEmptyComponent={
-                    <EmptyState
-                        icone="📭"
-                        titulo="Nenhum post encontrado"
-                        mensagem="A lista está vazia no momento."
-                    />
+
+                // ✅ EXERCÍCIO 5 - botão carregar mais
+                ListFooterComponent={
+                    <TouchableOpacity
+                        onPress={carregarMais}
+                        disabled={carregandoMais}
+                        style={{ padding: 16, alignItems: 'center' }}
+                    >
+                        <Text style={{ color: '#1a56db' }}>
+                            {carregandoMais ? 'Carregando...' : 'Carregar mais'}
+                        </Text>
+                    </TouchableOpacity>
                 }
+
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={['#1a56db']}
-                        tintColor="#1a56db"
                     />
                 }
-                contentContainerStyle={
-                    posts.length === 0 ? styles.listaVazia : styles.lista
-                }
-                ItemSeparatorComponent={() => <View style={styles.separador} />}
             />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f3f4f6',
-    },
-    lista: {
-        padding: 16,
-        paddingBottom: 32,
-    },
-    listaVazia: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    separador: {
-        height: 12,
-    },
+    container: { flex: 1, backgroundColor: '#f3f4f6' },
 });
